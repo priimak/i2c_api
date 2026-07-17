@@ -1,24 +1,27 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from bitstring import Bits, BitArray
 
 
 class I2CMaster(ABC):
     @abstractmethod
-    def write(self, address: int, data: Bits | str | int, num_bytes: int | None = None) -> bool:
+    def write(self, address: int, data: Bits | str | int | list[int], num_bytes: int | None = None) -> bool:
         """
-        Performs write transaction sending `data` to the target device identified by `address`.
+        Performs write transaction sending `data` to the target device identified by `address`. At the end master will
+        issue Stop condition and will release the clock line.
 
         :param address: i2c address of the target device
-        :param data: array of bits to send to the target device.
+        :param data: array of bits to send to the target device; if int or list[int], then these are assumed to be bytes
         :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
         :return: True or False indicating if write succeeded, which is that client responded with ACK bits.
         """
 
     @abstractmethod
-    def read(self, address: int, num_bytes: int = 1) -> Bits | None:
+    def read(self, address: int, num_bytes: int = 1) -> Optional[Bits]:
         """
         Performs read transaction reading `num_bytes` (default is 1) from the target device identified by `address`.
+        At the end master will issue Stop condition and will release the clock line.
 
         :param address: i2c address of the target device
         :param num_bytes: number of bytes to read
@@ -26,12 +29,15 @@ class I2CMaster(ABC):
         """
 
     @abstractmethod
-    def read_register(self, address: int, register: int, num_bytes: int = 1, use_restart: bool = False) -> Bits | None:
+    def read_register(self, address: int, register: int, num_bytes: int = 1, use_restart: bool = False) \
+            -> Optional[Bits]:
         """
         Reads register from the target device identified by `address`. This is a compound operation where we
         send first `write(address, register, num_bytes=1)` followed by `read(address, register, num_bytes)`.
-        If `use_restart` is True then if device supports it i2c restart will be used between read and write operations
-        and if device does not support it them RuntimeError will be raised.
+        If `use_restart` is True, then if device supports it i2c restart will be used between read and write operations
+        and if device does not support it them RuntimeError will be raised. if `use_restart` is False (default), then
+        two separate transactions will be used to perform register read operation with clock line being released between
+        them.
 
         :param address: i2c address of the target device
         :param register: address of the register to read
@@ -41,14 +47,15 @@ class I2CMaster(ABC):
         :return: None if at any point during these transactions client sends NACK or actual Bits holding response data
         """
 
-    def write_register(self, address: int, register: int, data: Bits | str | int, num_bytes: int = 1) -> bool:
+    def write_register(self, address: int, register: int, data: Bits | str | int | list[int],
+                       num_bytes: int = 1) -> bool:
         """
         Writes register to the target device. This is basically same as `write(...)` where first write byte is register
         address and subsequent bytes are values to write into a register.
 
         :param address: i2c address of the target device
         :param register: address of the register to write to
-        :param data: array of bits to send to the target device.
+        :param data: array of bits to send to the target device; if int or list[int], then these are assumed to be bytes
         :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
         :return:
         """
