@@ -1,9 +1,10 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
-from bitstring import Bits
+from bitstring import Bits, BitArray
 
 
 class I2CMaster(ABC):
+    @abstractmethod
     def write(self, address: int, data: Bits | str | int, num_bytes: int | None = None) -> bool:
         """
         Performs write transaction sending `data` to the target device identified by `address`.
@@ -14,6 +15,7 @@ class I2CMaster(ABC):
         :return: True or False indicating if write succeeded, which is that client responded with ACK bits.
         """
 
+    @abstractmethod
     def read(self, address: int, num_bytes: int = 1) -> Bits | None:
         """
         Performs read transaction reading `num_bytes` (default is 1) from the target device identified by `address`.
@@ -23,6 +25,7 @@ class I2CMaster(ABC):
         :return: None if failed to read data from the client (that is client did not send ACK bits) or data is Bits
         """
 
+    @abstractmethod
     def read_register(self, address: int, register: int, num_bytes: int = 1, use_restart: bool = False) -> Bits | None:
         """
         Reads register from the target device identified by `address`. This is a compound operation where we
@@ -49,7 +52,15 @@ class I2CMaster(ABC):
         :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
         :return:
         """
+        payload_length_bits = num_bytes * 8
+        payload = BitArray(f"uint:{payload_length_bits}={data}") if isinstance(data, int) else BitArray(data)
+        payload = payload[-payload_length_bits:] if payload.len > payload_length_bits else payload
+        if payload.len < payload_length_bits:
+            payload.prepend(BitArray(payload_length_bits - payload.len))
 
+        return self.write(address, BitArray(f"uint:8={register}") + payload, num_bytes + 1)
+
+    @abstractmethod
     def scan(self) -> list[int]:
         """
         Scans for all client devices connected on this I2C bus.
