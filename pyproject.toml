@@ -1,5 +1,5 @@
 [project]
-name = "i2capi"
+name = "i2c_api"
 version = "0.1.0"
 description = "I2C API"
 readme = "README.md"
