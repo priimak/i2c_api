@@ -5,6 +5,36 @@ from bitstring import Bits, BitArray
 
 
 class I2CMaster(ABC):
+    @staticmethod
+    def mk_payload(data: Bits | str | int | list[int]) -> BitArray:
+        if isinstance(data, int):
+            return BitArray(f"uint:8={data}")
+        elif isinstance(data, list):
+            acc = BitArray(0)
+            for b in data:
+                acc += BitArray(f"uint:8={b}")
+            return acc
+        elif isinstance(data, str) or isinstance(data, Bits):
+            return BitArray(data)
+        else:
+            raise RuntimeError("Invalid payload type")
+
+    @staticmethod
+    def pad_payload(payload: BitArray, num_bytes: int | None = None) -> Bits:
+        if num_bytes is None:
+            if payload.len % 8 != 0:
+                payload.prepend(BitArray(8 - payload.len % 8))
+            else:
+                return payload
+
+        elif payload.len > num_bytes * 8:
+            payload = payload[-(num_bytes * 8):]
+
+        elif payload.len < num_bytes * 8:
+            payload.prepend(BitArray(num_bytes * 8 - payload.len))
+
+        return payload
+
     @abstractmethod
     def write(self, address: int, data: Bits | str | int | list[int], num_bytes: int | None = None) -> bool:
         """
@@ -29,13 +59,13 @@ class I2CMaster(ABC):
         """
 
     @abstractmethod
-    def read_register(self, address: int, register: int, num_bytes: int = 1, use_restart: bool = False) \
+    def read_register(self, address: int, register: int, num_bytes: int = 1, use_restart: bool = True) \
             -> Optional[Bits]:
         """
         Reads register from the target device identified by `address`. This is a compound operation where we
         send first `write(address, register, num_bytes=1)` followed by `read(address, register, num_bytes)`.
-        If `use_restart` is True, then if device supports it i2c restart will be used between read and write operations
-        and if device does not support it them RuntimeError will be raised. if `use_restart` is False (default), then
+        If `use_restart` is True (default), then if device supports it i2c restart will be used between read and write
+        operations and if device does not support it them RuntimeError will be raised. if `use_restart` is False, then
         two separate transactions will be used to perform register read operation with clock line being released between
         them.
 
@@ -59,13 +89,10 @@ class I2CMaster(ABC):
         :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
         :return:
         """
-        payload_length_bits = num_bytes * 8
-        payload = BitArray(f"uint:{payload_length_bits}={data}") if isinstance(data, int) else BitArray(data)
-        payload = payload[-payload_length_bits:] if payload.len > payload_length_bits else payload
-        if payload.len < payload_length_bits:
-            payload.prepend(BitArray(payload_length_bits - payload.len))
-
-        return self.write(address, BitArray(f"uint:8={register}") + payload, num_bytes + 1)
+        return self.write(
+            address,
+            BitArray(f"uint:8={register}") + I2CMaster.pad_payload(I2CMaster.mk_payload(data), num_bytes)
+        )
 
     @abstractmethod
     def scan(self) -> list[int]:
@@ -73,4 +100,38 @@ class I2CMaster(ABC):
         Scans for all client devices connected on this I2C bus.
 
         :return: list of addresses of connected devices
+        """
+
+    @abstractmethod
+    def list_pullups(self) -> list[str]:
+        """
+        Returns list of possible configurable pullup resistor values.
+        These should be human-readable values like [20 OHm]
+        """
+
+    @abstractmethod
+    def set_pullup(self, pullup_value: str) -> None:
+        """
+        Set pullup resistor value. This should be one of the strings returned by `list_pullups()` method.
+        """
+
+    @abstractmethod
+    def get_pullup(self) -> str:
+        """
+        Returns currently active pullup resistor value in human-readable format.
+        """
+
+    @abstractmethod
+    def list_clk_speeds(self) -> list[int]:
+        """ Returns list of available configuable clock speeds in KHz. """
+
+    @abstractmethod
+    def get_clk_speed(self) -> int:
+        """ Returns currently configued clock speed in KHz. """
+
+    @abstractmethod
+    def set_clk_speed(self, speed: int) -> None:
+        """
+        Sets clock speed to `speed` value in KHz. Supplied value must be one of the returned one by
+        method `list_clk_speeds()`, if not, then RuntimeError is raised.
         """
