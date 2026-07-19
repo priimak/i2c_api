@@ -8,6 +8,11 @@ dependencies = [
     "bitstring>=4.4.0",
 ]
 
+[project.dev]
+depenencies = [
+    "pytest"
+]
+
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-git-versioning"]
 build-backend = "setuptools.build_meta"
