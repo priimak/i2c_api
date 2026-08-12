@@ -3,6 +3,8 @@ from typing import Optional
 
 from bitstring import Bits, BitArray
 
+from i2c_api.logger import I2CLogger
+
 
 class I2CMaster(ABC):
     @staticmethod
@@ -34,6 +36,10 @@ class I2CMaster(ABC):
             payload.prepend(BitArray(num_bytes * 8 - payload.len))
 
         return payload
+
+    @abstractmethod
+    def logger(self) -> I2CLogger:
+        pass
 
     @abstractmethod
     def write(self, address: int, data: Bits | str | int | list[int], num_bytes: int | None = None) -> bool:
