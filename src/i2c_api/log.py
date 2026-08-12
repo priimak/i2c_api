@@ -45,3 +45,15 @@ class DATA_MISO(I2CTransactionElement):
 
     def __init__(self, payload: Bits):
         self.payload = payload
+
+
+class I2CMessage:
+    START = START()
+    STOP = STOP()
+    RESTART = RESTART()
+    READ = READ()
+    WRITE = WRITE()
+    ACK = ACK()
+    NACK = NACK()
+    DATA_MOSI = DATA_MOSI
+    DATA_MISO = DATA_MISO
