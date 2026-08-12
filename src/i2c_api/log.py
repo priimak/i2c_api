@@ -4,34 +4,43 @@ from bitstring import Bits
 class I2CTransactionElement:
     pass
 
-class START:
+
+class START(I2CTransactionElement):
     pass
 
-class STOP:
+
+class STOP(I2CTransactionElement):
     pass
 
-class RESTART:
+
+class RESTART(I2CTransactionElement):
     pass
 
-class READ:
+
+class READ(I2CTransactionElement):
     pass
 
-class WRITE:
+
+class WRITE(I2CTransactionElement):
     pass
 
-class ACK:
+
+class ACK(I2CTransactionElement):
     pass
 
-class NACK:
+
+class NACK(I2CTransactionElement):
     pass
 
-class DATA_MOSI:
+
+class DATA_MOSI(I2CTransactionElement):
     __match_args__ = ("payload",)
 
     def __init__(self, payload: Bits):
         self.payload = payload
 
-class DATA_MISO:
+
+class DATA_MISO(I2CTransactionElement):
     __match_args__ = ("payload",)
 
     def __init__(self, payload: Bits):

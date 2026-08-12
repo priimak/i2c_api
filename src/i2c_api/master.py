@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from bitstring import Bits, BitArray
+from bitstring import BitArray, Bits
 
 from .logger import I2CLogger
 
@@ -30,7 +29,7 @@ class I2CMaster(ABC):
                 return payload
 
         elif payload.len > num_bytes * 8:
-            payload = payload[-(num_bytes * 8):]
+            payload = payload[-(num_bytes * 8) :]
 
         elif payload.len < num_bytes * 8:
             payload.prepend(BitArray(num_bytes * 8 - payload.len))
@@ -42,7 +41,12 @@ class I2CMaster(ABC):
         pass
 
     @abstractmethod
-    def write(self, address: int, data: Bits | str | int | list[int], num_bytes: int | None = None) -> bool:
+    def write(
+        self,
+        address: int,
+        data: Bits | str | int | list[int],
+        num_bytes: int | None = None,
+    ) -> bool:
         """
         Performs write transaction sending `data` to the target device identified by `address`. At the end master will
         issue Stop condition and will release the clock line.
@@ -54,7 +58,7 @@ class I2CMaster(ABC):
         """
 
     @abstractmethod
-    def read(self, address: int, num_bytes: int = 1) -> Optional[Bits]:
+    def read(self, address: int, num_bytes: int = 1) -> Bits | None:
         """
         Performs read transaction reading `num_bytes` (default is 1) from the target device identified by `address`.
         At the end master will issue Stop condition and will release the clock line.
@@ -65,8 +69,9 @@ class I2CMaster(ABC):
         """
 
     @abstractmethod
-    def read_register(self, address: int, register: int, num_bytes: int = 1, use_restart: bool = True) \
-            -> Optional[Bits]:
+    def read_register(
+        self, address: int, register: int, num_bytes: int = 1, use_restart: bool = True
+    ) -> Bits | None:
         """
         Reads register from the target device identified by `address`. This is a compound operation where we
         send first `write(address, register, num_bytes=1)` followed by `read(address, register, num_bytes)`.
@@ -83,8 +88,13 @@ class I2CMaster(ABC):
         :return: None if at any point during these transactions client sends NACK or actual Bits holding response data
         """
 
-    def write_register(self, address: int, register: int, data: Bits | str | int | list[int],
-                       num_bytes: int | None = 1) -> bool:
+    def write_register(
+        self,
+        address: int,
+        register: int,
+        data: Bits | str | int | list[int],
+        num_bytes: int | None = 1,
+    ) -> bool:
         """
         Writes register to the target device. This is basically same as `write(...)` where first write byte is register
         address and subsequent bytes are values to write into a register.
@@ -97,7 +107,8 @@ class I2CMaster(ABC):
         """
         return self.write(
             address,
-            BitArray(f"uint:8={register}") + I2CMaster.pad_payload(I2CMaster.mk_payload(data), num_bytes)
+            BitArray(f"uint:8={register}")
+            + I2CMaster.pad_payload(I2CMaster.mk_payload(data), num_bytes),
         )
 
     @abstractmethod
@@ -129,11 +140,11 @@ class I2CMaster(ABC):
 
     @abstractmethod
     def list_clk_speeds(self) -> list[int]:
-        """ Returns list of available configuable clock speeds in KHz. """
+        """Returns list of available configuable clock speeds in KHz."""
 
     @abstractmethod
     def get_clk_speed(self) -> int:
-        """ Returns currently configued clock speed in KHz. """
+        """Returns currently configued clock speed in KHz."""
 
     @abstractmethod
     def set_clk_speed(self, speed: int) -> None:
