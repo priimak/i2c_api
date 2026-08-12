@@ -78,7 +78,7 @@ class I2CMaster(ABC):
         """
 
     def write_register(self, address: int, register: int, data: Bits | str | int | list[int],
-                       num_bytes: int = 1) -> bool:
+                       num_bytes: int | None = 1) -> bool:
         """
         Writes register to the target device. This is basically same as `write(...)` where first write byte is register
         address and subsequent bytes are values to write into a register.
