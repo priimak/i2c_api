@@ -3,7 +3,7 @@ from typing import Optional
 
 from bitstring import Bits, BitArray
 
-from i2c_api.logger import I2CLogger
+from .logger import I2CLogger
 
 
 class I2CMaster(ABC):

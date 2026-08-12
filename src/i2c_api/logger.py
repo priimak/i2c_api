@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from i2c_api.log import I2CTransactionElement
+from .log import I2CTransactionElement
 
 class I2CLogger(ABC):
     @abstractmethod
