@@ -96,6 +96,7 @@ class I2CMaster(ABC):
         data: Bits | str | int | list[int],
         num_bytes: int | None = 1,
         read_back: bool = False,
+        use_restart: bool = True,
     ) -> BitArray | None:
         """
         Writes register to the target device. This is basically same as `write(...)` where first write byte is register
@@ -108,6 +109,8 @@ class I2CMaster(ABC):
         :param read_back: if True, then register read operation will be performed at the end and its value returned.
             Otherwise, if False (default), then just do write and return back to the user the same BitArray that was
             supplied to this function as `data`.
+        :param use_restart: True or False (default) indicating if we should try using I2C restart op between read and
+                write operations. This value is applicable only of `read_back` is `True`.
         :return: Value written into the register or None of NACK was received at any moment from the client device.
         """
 
