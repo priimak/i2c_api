@@ -97,7 +97,7 @@ class I2CMaster(ABC):
         num_bytes: int | None = 1,
         read_back: bool = False,
         use_restart: bool = True,
-    ) -> BitArray | None:
+    ) -> Bits | None:
         """
         Writes register to the target device. This is basically same as `write(...)` where first write byte is register
         address and subsequent bytes are values to write into a register.
