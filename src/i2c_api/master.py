@@ -88,13 +88,15 @@ class I2CMaster(ABC):
         :return: None if at any point during these transactions client sends NACK or actual Bits holding response data
         """
 
+    @abstractmethod
     def write_register(
         self,
         address: int,
         register: int,
         data: Bits | str | int | list[int],
         num_bytes: int | None = 1,
-    ) -> bool:
+        read_back: bool = False,
+    ) -> BitArray | None:
         """
         Writes register to the target device. This is basically same as `write(...)` where first write byte is register
         address and subsequent bytes are values to write into a register.
@@ -103,13 +105,11 @@ class I2CMaster(ABC):
         :param register: address of the register to write to
         :param data: array of bits to send to the target device; if int or list[int], then these are assumed to be bytes
         :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
-        :return:
+        :param read_back: if True, then register read operation will be performed at the end and its value returned.
+            Otherwise, if False (default), then just do write and return back to the user the same BitArray that was
+            supplied to this function as `data`.
+        :return: Value written into the register or None of NACK was received at any moment from the client device.
         """
-        return self.write(
-            address,
-            BitArray(f"uint:8={register}")
-            + I2CMaster.pad_payload(I2CMaster.mk_payload(data), num_bytes),
-        )
 
     @abstractmethod
     def scan(self) -> list[int]:
