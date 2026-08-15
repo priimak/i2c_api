@@ -1,8 +1,15 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from bitstring import BitArray, Bits
 
 from .logger import I2CLogger
+
+
+@dataclass(frozen=True, slots=True)
+class RegisterAddress:
+    address: int
+    bus_with_in_bytes: int
 
 
 class I2CMaster(ABC):
@@ -70,7 +77,11 @@ class I2CMaster(ABC):
 
     @abstractmethod
     def read_register(
-        self, address: int, register: int, num_bytes: int = 1, use_restart: bool = True
+        self,
+        address: int,
+        register: RegisterAddress,
+        num_bytes: int = 1,
+        use_restart: bool = True,
     ) -> Bits | None:
         """
         Reads register from the target device identified by `address`. This is a compound operation where we
@@ -92,7 +103,7 @@ class I2CMaster(ABC):
     def write_register(
         self,
         address: int,
-        register: int,
+        register: RegisterAddress,
         data: Bits | str | int | list[int],
         num_bytes: int | None = 1,
         read_back: bool = False,
