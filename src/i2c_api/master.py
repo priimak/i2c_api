@@ -9,7 +9,7 @@ from .logger import I2CLogger
 @dataclass(frozen=True, slots=True)
 class RegisterAddress:
     address: int
-    bus_with_in_bytes: int
+    bus_width_in_bytes: int
 
 
 class I2CMaster(ABC):
