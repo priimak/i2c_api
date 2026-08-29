@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from bitstring import BitArray, Bits
 
-from .logger import I2CLogger
+from i2c_api.logger import I2CLogger
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,34 +14,34 @@ class RegisterAddress:
 
 class I2CMaster(ABC):
     @staticmethod
-    def mk_payload(data: Bits | str | int | list[int]) -> BitArray:
-        if isinstance(data, int):
-            return BitArray(f"uint:8={data}")
-        elif isinstance(data, list):
-            acc = BitArray(0)
-            for b in data:
-                acc += BitArray(f"uint:8={b}")
-            return acc
-        elif isinstance(data, str) or isinstance(data, Bits):
-            return BitArray(data)
+    def __pad_up_to_bytes(data: BitArray, num_bytes: int | None) -> BitArray:
+        if num_bytes is None:
+            if data.len % 8 != 0:
+                data.prepend(BitArray(8 - data.len % 8))
+            return data
+        elif data.len <= num_bytes * 8:
+            data.prepend(BitArray(num_bytes * 8 - data.len))
+            return data
         else:
-            raise RuntimeError("Invalid payload type")
+            raise ValueError(
+                f"Input bit array is larger then pad_up_to_num_bytes={num_bytes}"
+            )
 
     @staticmethod
-    def pad_payload(payload: BitArray, num_bytes: int | None = None) -> Bits:
-        if num_bytes is None:
-            if payload.len % 8 != 0:
-                payload.prepend(BitArray(8 - payload.len % 8))
-            else:
-                return payload
-
-        elif payload.len > num_bytes * 8:
-            payload = payload[-(num_bytes * 8) :]
-
-        elif payload.len < num_bytes * 8:
-            payload.prepend(BitArray(num_bytes * 8 - payload.len))
-
-        return payload
+    def mk_payload(
+        data: Bits | str | int | list[int], pad_up_to_num_bytes: int | None = None
+    ) -> BitArray:
+        if isinstance(data, int):
+            width_bits = 8 if pad_up_to_num_bytes is None else (8 * pad_up_to_num_bytes)
+            return BitArray(f"uint:{width_bits}={data}")
+        elif isinstance(data, list):
+            return I2CMaster.__pad_up_to_bytes(
+                BitArray("".join([f"uint:8={a}," for a in data])), pad_up_to_num_bytes
+            )
+        elif isinstance(data, (str, Bits)):
+            return I2CMaster.__pad_up_to_bytes(BitArray(data), pad_up_to_num_bytes)
+        else:
+            raise TypeError("Invalid payload type")
 
     @abstractmethod
     def logger(self) -> I2CLogger:
@@ -60,7 +60,8 @@ class I2CMaster(ABC):
 
         :param address: i2c address of the target device
         :param data: array of bits to send to the target device; if int or list[int], then these are assumed to be bytes
-        :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
+        :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits to fit
+            payload into fixed number of bytes. Raises ValueError if num_bytes is not None and is less than data width.
         :return: True or False indicating if write succeeded, which is that client responded with ACK bits.
         """
 
@@ -105,7 +106,7 @@ class I2CMaster(ABC):
         address: int,
         register: RegisterAddress,
         data: Bits | str | int | list[int],
-        num_bytes: int | None = 1,
+        num_bytes: int | None = None,
         read_back: bool = False,
         use_restart: bool = True,
     ) -> Bits | None:
@@ -115,8 +116,10 @@ class I2CMaster(ABC):
 
         :param address: i2c address of the target device
         :param register: address of the register to write to
-        :param data: array of bits to send to the target device; if int or list[int], then these are assumed to be bytes
-        :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits.
+        :param data: array of bits to send to the target device; if int or list[int], then these are assumed to be
+            bytes. It can be empty list which means that i2c transaction will include only register address/command.
+        :param num_bytes: number of bytes to send or if None, then send all bits in `data` padded with zero bits to fit
+            payload into fixed number of bytes. Raises ValueError if num_bytes is not None and is less than data width.
         :param read_back: if True, then register read operation will be performed at the end and its value returned.
             Otherwise, if False (default), then just do write and return back to the user the same BitArray that was
             supplied to this function as `data`.
