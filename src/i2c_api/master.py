@@ -31,9 +31,20 @@ class I2CMaster(ABC):
     def mk_payload(
         data: Bits | str | int | list[int], pad_up_to_num_bytes: int | None = None
     ) -> BitArray:
+        """
+        Creates BitArray to be used as a payload in i2c write operations from `data` argument.
+        If `pad_up_to_num_bytes` is None, then returned value will be padded to the next nearest number of bytes to
+        ensure that returned value is integer multiple of 8 bits.
+
+        If data is str then pass, then construct BitArray(data). For example, you can pass "`0b10010`" as a string.
+        If data is Bits, then simply wrap it in BitArray.
+        If data is int, then it is interpreted as unsigned value of one byte
+        if data is list[int], then that is assumed to be a list of bytes.
+        """
         if isinstance(data, int):
-            width_bits = 8 if pad_up_to_num_bytes is None else (8 * pad_up_to_num_bytes)
-            return BitArray(f"uint:{width_bits}={data}")
+            return I2CMaster.__pad_up_to_bytes(
+                BitArray(f"uint:8={data}"), pad_up_to_num_bytes
+            )
         elif isinstance(data, list):
             return I2CMaster.__pad_up_to_bytes(
                 BitArray("".join([f"uint:8={a}," for a in data])), pad_up_to_num_bytes

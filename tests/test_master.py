@@ -10,16 +10,18 @@ def test_mk_payload_int():
     assert I2CMaster.mk_payload(7) == BitArray("uint:8=7")
     assert I2CMaster.mk_payload(255) == BitArray("uint:8=255")
 
+    # value of 300 does not fit into one byte
     with pytest.raises(ValueError):
         I2CMaster.mk_payload(300)
 
     with pytest.raises(ValueError):
         I2CMaster.mk_payload(-1)
 
-    assert I2CMaster.mk_payload(300, pad_up_to_num_bytes=5) == BitArray("uint:40=300")
+    assert I2CMaster.mk_payload(250, pad_up_to_num_bytes=5) == BitArray("uint:40=250")
 
+    # does not matter how much we pad this, value of 300 does not fit into one byte.
     with pytest.raises(ValueError):
-        I2CMaster.mk_payload(300, pad_up_to_num_bytes=1)
+        I2CMaster.mk_payload(300, pad_up_to_num_bytes=5)
 
 
 def test_mk_payload_list():
