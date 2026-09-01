@@ -6,6 +6,10 @@ from bitstring import BitArray, Bits
 from i2c_api.logger import I2CLogger
 
 
+class I2CError(Exception):
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class RegisterAddress:
     address: int
