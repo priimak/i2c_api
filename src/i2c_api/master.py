@@ -3,7 +3,10 @@ from dataclasses import dataclass
 
 from bitstring import BitArray, Bits
 
+from i2c_api.commands import Command
 from i2c_api.logger import I2CLogger
+
+type ExecError = str
 
 
 class I2CError(Exception):
@@ -89,6 +92,16 @@ class I2CMaster(ABC):
         :param address: i2c address of the target device
         :param num_bytes: number of bytes to read
         :return: None if failed to read data from the client (that is client did not send ACK bits) or data is Bits
+        """
+
+    @abstractmethod
+    def exec(self, commands: list[Command]) -> tuple[list[list[BitArray]], bool]:
+        """
+        Executes I2C commands in a single transaction and returns tuple where first value is list of lists of read bytes
+        if any and second value is True or False indicating if transaction completed successfully. Unsuccessful
+        completion usual means that slave device responded with NACK at some point during communication between master
+        and the slave. Each sub-list within the list corresponds contiguous sequence of read bytes coming from the
+        slave.
         """
 
     @abstractmethod
