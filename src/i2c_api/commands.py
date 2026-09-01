@@ -8,6 +8,8 @@ class S(Command):
 
 
 class Address(Command):
+    __match_args__ = ("address",)
+
     def __init__(self, address: int):
         self.address = address
 
@@ -19,6 +21,8 @@ class Address(Command):
 
 
 class Address10(Command):
+    __match_args__ = ("address",)
+
     def __init__(self, address: int):
         self.address = address
 
@@ -38,6 +42,8 @@ class W(Command):
 
 
 class Data(Command):
+    __match_args__ = ("data",)
+
     def __init__(self, data: int):
         self.data = data
 
@@ -46,6 +52,8 @@ class Data(Command):
 
 
 class Read(Command):
+    __match_args__ = ("num_bytes",)
+
     def __init__(self, num_bytes: int):
         self.num_bytes = num_bytes
 
