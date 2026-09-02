@@ -1,5 +1,3 @@
-from typing import Self
-
 from bitstring import BitArray
 
 from i2c_api.commands import Address, Command, Data, P, Read, S, Sr, W
@@ -19,32 +17,6 @@ class I2CStopStart:
         return I2CAddress(self._i2c)
 
 
-class I2CMoreData(I2CStopStart):
-    def __init__(self, i2c: "I2CTransaction"):
-        super().__init__(i2c)
-
-    def data(self, data: int | list[int]) -> Self:
-        if isinstance(data, int):
-            self._i2c._i2c_commands.append(Data(data))
-        else:
-            for b in data:
-                self._i2c._i2c_commands.append(Data(b))
-        return self
-
-
-class I2CData:
-    def __init__(self, i2c: "I2CTransaction"):
-        self._i2c = i2c
-
-    def data(self, data: int | list[int]) -> I2CMoreData:
-        if isinstance(data, int):
-            self._i2c._i2c_commands.append(Data(data))
-        else:
-            for b in data:
-                self._i2c._i2c_commands.append(Data(b))
-        return I2CMoreData(self._i2c)
-
-
 class I2CReadWrite:
     def __init__(self, i2c: "I2CTransaction"):
         self._i2c = i2c
@@ -53,9 +25,14 @@ class I2CReadWrite:
         self._i2c._i2c_commands.append(Read(number_of_bytes))
         return I2CStopStart(self._i2c)
 
-    def write(self) -> I2CData:
+    def write(self, data: int | list[int]) -> I2CStopStart:
         self._i2c._i2c_commands.append(W())
-        return I2CData(self._i2c)
+        if isinstance(data, int):
+            self._i2c._i2c_commands.append(Data(data))
+        else:
+            for b in data:
+                self._i2c._i2c_commands.append(Data(b))
+        return I2CStopStart(self._i2c)
 
 
 class I2CAddress:
