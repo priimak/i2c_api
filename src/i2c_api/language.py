@@ -7,10 +7,10 @@ from i2c_api.master import I2CMaster
 
 
 class I2CStopStart:
-    def __init__(self, i2c: "I2C"):
+    def __init__(self, i2c: "I2CTransaction"):
         self._i2c = i2c
 
-    def stop(self) -> "I2C":
+    def stop(self) -> "I2CTransaction":
         self._i2c._i2c_commands.append(P())
         return self._i2c
 
@@ -20,7 +20,7 @@ class I2CStopStart:
 
 
 class I2CMoreData(I2CStopStart):
-    def __init__(self, i2c: "I2C"):
+    def __init__(self, i2c: "I2CTransaction"):
         super().__init__(i2c)
 
     def data(self, data: int | list[int]) -> Self:
@@ -33,7 +33,7 @@ class I2CMoreData(I2CStopStart):
 
 
 class I2CData:
-    def __init__(self, i2c: "I2C"):
+    def __init__(self, i2c: "I2CTransaction"):
         self._i2c = i2c
 
     def data(self, data: int | list[int]) -> I2CMoreData:
@@ -46,7 +46,7 @@ class I2CData:
 
 
 class I2CReadWrite:
-    def __init__(self, i2c: "I2C"):
+    def __init__(self, i2c: "I2CTransaction"):
         self._i2c = i2c
 
     def read(self, number_of_bytes: int) -> I2CStopStart:
@@ -59,7 +59,7 @@ class I2CReadWrite:
 
 
 class I2CAddress:
-    def __init__(self, i2c: "I2C"):
+    def __init__(self, i2c: "I2CTransaction"):
         self._i2c = i2c
 
     def address(self, device_address: int = -1) -> I2CReadWrite:
@@ -70,13 +70,13 @@ class I2CAddress:
         raise RuntimeError("Not implemented")
 
 
-class I2C:
+class I2CTransaction:
     def __init__(self, master: I2CMaster | None = None):
         self._master = master
         self._i2c_commands: list[Command] = []
 
     def start(self) -> I2CAddress:
-        new_root = I2C()
+        new_root = I2CTransaction()
         new_root._i2c_commands.append(S())
         return I2CAddress(new_root)
 
@@ -95,28 +95,7 @@ class I2C:
                     )
 
         master_to_use = self._master if master is None else master
-        return master_to_use.exec(self._i2c_commands)
+        return master_to_use.exec(self)
 
     def __repr__(self) -> str:
         return "i2c." + ".".join(str(c) for c in self._i2c_commands)
-
-
-if __name__ == "__main__":
-    i2c = I2C()
-    a = i2c.start().address().write().data(0x7).data(0xA1).stop().exec()
-    b = i2c.start().address(1).write().data(0x7).data(0xA1).stop()
-    print(a)
-    print(b)
-    # data = (
-    #     i2c.start()
-    #     .address(22)
-    #     .write()
-    #     .data(0x8)
-    #     .restart()
-    #     .address(0x6)
-    #     .read(5)
-    #     .stop()
-    # )
-    #
-    # print(a)
-    # print(data)

@@ -3,14 +3,9 @@ from dataclasses import dataclass
 
 from bitstring import BitArray, Bits
 
-from i2c_api.commands import Command
+from i2c_api.commands import P
+from i2c_api.errors import I2CError
 from i2c_api.logger import I2CLogger
-
-type ExecError = str
-
-
-class I2CError(Exception):
-    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,8 +89,7 @@ class I2CMaster(ABC):
         :return: None if failed to read data from the client (that is client did not send ACK bits) or data is Bits
         """
 
-    @abstractmethod
-    def exec(self, commands: list[Command]) -> tuple[list[list[BitArray]], bool]:
+    def exec(self, transaction: "I2CTransaction") -> tuple[list[list[BitArray]], bool]:
         """
         Executes I2C commands in a single transaction and returns tuple where first value is list of lists of read bytes
         if any and second value is True or False indicating if transaction completed successfully. Unsuccessful
@@ -103,6 +97,20 @@ class I2CMaster(ABC):
         and the slave. Each sub-list within the list corresponds contiguous sequence of read bytes coming from the
         slave.
         """
+        from i2c_api.language import I2CTransaction
+
+        if not isinstance(transaction, I2CTransaction):
+            raise I2CError("transaction argument must be instance of I2CTransaction")
+        elif transaction._i2c_commands == [] or not isinstance(
+            transaction._i2c_commands[-1], P
+        ):
+            raise I2CError("Unable to execute incomplete transaction")
+        else:
+            return self._exec(transaction)
+
+    @abstractmethod
+    def _exec(self, transaction: "I2CTransaction") -> tuple[list[list[BitArray]], bool]:
+        pass
 
     @abstractmethod
     def read_register(
