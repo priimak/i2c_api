@@ -2,7 +2,8 @@ from bitstring import Bits
 
 
 class I2CTransactionElement:
-    pass
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
 
 
 class START(I2CTransactionElement):
@@ -39,12 +40,18 @@ class DATA_MOSI(I2CTransactionElement):
     def __init__(self, payload: Bits):
         self.payload = payload
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.payload})"
+
 
 class DATA_MISO(I2CTransactionElement):
     __match_args__ = ("payload",)
 
     def __init__(self, payload: Bits):
         self.payload = payload
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.payload})"
 
 
 class I2CMessage:
