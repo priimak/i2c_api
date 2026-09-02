@@ -33,10 +33,6 @@ class Address10(Command):
             return f"{self.__class__.__name__}(0x{self.address:02X})"
 
 
-class R(Command):
-    pass
-
-
 class W(Command):
     pass
 
