@@ -65,15 +65,31 @@ class I2CTransaction:
             raise ValueError("I2CMaster must be provided to execute this transaction")
 
         if device_address == -1:
-            for c in self._i2c_commands:
-                if isinstance(c, Address) and c.address == -1:
-                    raise ValueError(
-                        "Some Address(...) commands are given without address. "
-                        "Thus, argument `address` must be provided."
-                    )
+            device_address = globals().get("__device_address__", -1)
+
+        def get_transaction():
+            if device_address == -1:
+                for c in self._i2c_commands:
+                    if isinstance(c, Address) and c.address == -1:
+                        raise ValueError(
+                            "Some Address(...) commands are given without address. "
+                            "Thus, argument `address` must be provided."
+                        )
+                return self
+
+            else:
+                # Autofill addresses if necessary.
+                new_root = I2CTransaction()
+                new_root._master = self._master
+                new_root._i2c_commands = self._i2c_commands
+                for c in new_root._i2c_commands:
+                    if isinstance(c, Address) and c.address == -1:
+                        c.address = device_address
+
+                return new_root
 
         master_to_use = self._master if master is None else master
-        return master_to_use.exec(self)
+        return master_to_use.exec(get_transaction())
 
     def __repr__(self) -> str:
         return "i2c." + ".".join(str(c) for c in self._i2c_commands)
