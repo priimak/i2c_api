@@ -77,6 +77,7 @@ class I2CTransaction:
 
     def start(self) -> I2CAddress:
         new_root = I2CTransaction()
+        new_root._master = self._master
         new_root._i2c_commands.append(S())
         return I2CAddress(new_root)
 
