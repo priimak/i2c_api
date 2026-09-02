@@ -48,13 +48,15 @@ class I2CAddress:
 
 
 class I2CTransaction:
-    def __init__(self, master: I2CMaster | None = None):
+    def __init__(
+        self, master: I2CMaster | None = None, default_device_address: int = -1
+    ):
         self._master = master
+        self._default_device_address = default_device_address
         self._i2c_commands: list[Command] = []
 
     def start(self) -> I2CAddress:
-        new_root = I2CTransaction()
-        new_root._master = self._master
+        new_root = I2CTransaction(self._master, self._default_device_address)
         new_root._i2c_commands.append(S())
         return I2CAddress(new_root)
 
@@ -65,7 +67,7 @@ class I2CTransaction:
             raise ValueError("I2CMaster must be provided to execute this transaction")
 
         if device_address == -1:
-            device_address = globals().get("__device_address__", -1)
+            device_address = self._default_device_address
 
         def get_transaction():
             if device_address == -1:
@@ -79,12 +81,16 @@ class I2CTransaction:
 
             else:
                 # Autofill addresses if necessary.
-                new_root = I2CTransaction()
+                new_root = I2CTransaction(self._master, self._default_device_address)
                 new_root._master = self._master
-                new_root._i2c_commands = self._i2c_commands
-                for c in new_root._i2c_commands:
-                    if isinstance(c, Address) and c.address == -1:
-                        c.address = device_address
+                for c in self._i2c_commands:
+                    if isinstance(c, Address):
+                        if c.address == -1:
+                            new_root._i2c_commands.append(Address(device_address))
+                        else:
+                            new_root._i2c_commands.append(c)
+                    else:
+                        new_root._i2c_commands.append(c)
 
                 return new_root
 
