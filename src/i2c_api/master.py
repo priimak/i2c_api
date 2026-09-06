@@ -1,11 +1,18 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import NamedTuple
 
 from bitstring import BitArray, Bits
 
+from i2c_api import I2CTransaction
 from i2c_api.commands import P
 from i2c_api.errors import I2CError
 from i2c_api.logger import I2CLogger
+
+
+class ExecResults(NamedTuple):
+    data: list[list[BitArray]]
+    is_success: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,13 +96,13 @@ class I2CMaster(ABC):
         :return: None if failed to read data from the client (that is client did not send ACK bits) or data is Bits
         """
 
-    def exec(self, transaction: "I2CTransaction") -> tuple[list[list[BitArray]], bool]:
+    def exec(self, transaction: "I2CTransaction") -> ExecResults:
         """
-        Executes I2C commands in a single transaction and returns tuple where first value is list of lists of read bytes
-        if any and second value is True or False indicating if transaction completed successfully. Unsuccessful
-        completion usual means that slave device responded with NACK at some point during communication between master
-        and the slave. Each sub-list within the list corresponds contiguous sequence of read bytes coming from the
-        slave.
+        Executes I2C commands in a single transaction and returns a named tuple `ExecResults` where first value is list
+        of lists of read bytes if any and second value is True or False indicating if transaction completed successfully.
+        Unsuccessful completion usual means that slave device responded with NACK at some point during communication
+        between master and the slave. Each sub-list within the list corresponds contiguous sequence of read bytes coming
+        from the slave.
         """
         from i2c_api.language import I2CTransaction
 
@@ -109,7 +116,7 @@ class I2CMaster(ABC):
             return self._exec(transaction)
 
     @abstractmethod
-    def _exec(self, transaction: "I2CTransaction") -> tuple[list[list[BitArray]], bool]:
+    def _exec(self, transaction: "I2CTransaction") -> ExecResults:
         pass
 
     @abstractmethod
