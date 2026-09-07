@@ -1,7 +1,5 @@
 from typing import Protocol
 
-from bitstring import BitArray
-
 from i2c_api.commands import Address, Command, Data, P, Read, S, Sr, W
 from i2c_api.exec_results import ExecResults
 
@@ -66,7 +64,7 @@ class I2CTransaction:
         new_root._i2c_commands.append(S())
         return I2CAddress(new_root)
 
-    def exec(self, master: I2CMaster | None = None, device_address: int = -1) -> tuple[list[list[BitArray]], bool]:
+    def exec(self, master: I2CMaster | None = None, device_address: int = -1) -> ExecResults:
         if self._master is None and master is None:
             raise ValueError("I2CMaster must be provided to execute this transaction")
 
