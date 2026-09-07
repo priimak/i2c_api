@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import NamedTuple
 
 from bitstring import BitArray, Bits
 
-from i2c_api.language import I2CTransaction
 from i2c_api.commands import P
 from i2c_api.errors import I2CError
 from i2c_api.exec_results import ExecResults
+from i2c_api.language import I2CTransaction
 from i2c_api.logger import I2CLogger
 
 
@@ -28,14 +27,10 @@ class I2CMaster(ABC):
             data.prepend(BitArray(num_bytes * 8 - data.len))
             return data
         else:
-            raise ValueError(
-                f"Input bit array is larger then pad_up_to_num_bytes={num_bytes}"
-            )
+            raise ValueError(f"Input bit array is larger then pad_up_to_num_bytes={num_bytes}")
 
     @staticmethod
-    def mk_payload(
-        data: Bits | str | int | list[int], pad_up_to_num_bytes: int | None = None
-    ) -> BitArray:
+    def mk_payload(data: Bits | str | int | list[int], pad_up_to_num_bytes: int | None = None) -> BitArray:
         """
         Creates BitArray to be used as a payload in i2c write operations from `data` argument.
         If `pad_up_to_num_bytes` is None, then returned value will be padded to the next nearest number of bytes to
@@ -47,13 +42,9 @@ class I2CMaster(ABC):
         if data is list[int], then that is assumed to be a list of bytes.
         """
         if isinstance(data, int):
-            return I2CMaster.__pad_up_to_bytes(
-                BitArray(f"uint:8={data}"), pad_up_to_num_bytes
-            )
+            return I2CMaster.__pad_up_to_bytes(BitArray(f"uint:8={data}"), pad_up_to_num_bytes)
         elif isinstance(data, list):
-            return I2CMaster.__pad_up_to_bytes(
-                BitArray("".join([f"uint:8={a}," for a in data])), pad_up_to_num_bytes
-            )
+            return I2CMaster.__pad_up_to_bytes(BitArray("".join([f"uint:8={a}," for a in data])), pad_up_to_num_bytes)
         elif isinstance(data, (str, Bits)):
             return I2CMaster.__pad_up_to_bytes(BitArray(data), pad_up_to_num_bytes)
         else:
@@ -102,9 +93,7 @@ class I2CMaster(ABC):
         """
         if not isinstance(transaction, I2CTransaction):
             raise I2CError("transaction argument must be instance of I2CTransaction")
-        elif transaction._i2c_commands == [] or not isinstance(
-            transaction._i2c_commands[-1], P
-        ):
+        elif transaction._i2c_commands == [] or not isinstance(transaction._i2c_commands[-1], P):
             raise I2CError("Unable to execute incomplete transaction")
         else:
             return self._exec(transaction)

@@ -2,16 +2,14 @@ from typing import Protocol
 
 from bitstring import BitArray
 
-from i2c_api.exec_results import ExecResults
 from i2c_api.commands import Address, Command, Data, P, Read, S, Sr, W
+from i2c_api.exec_results import ExecResults
 
 
 class I2CMaster(Protocol):
-    def exec(self, transaction: "I2CTransaction") -> ExecResults:
-        ...
+    def exec(self, transaction: "I2CTransaction") -> ExecResults: ...
 
-    def _exec(self, transaction: "I2CTransaction") -> ExecResults:
-        ...
+    def _exec(self, transaction: "I2CTransaction") -> ExecResults: ...
 
 
 class I2CStopStart:
@@ -58,9 +56,7 @@ class I2CAddress:
 
 
 class I2CTransaction:
-    def __init__(
-        self, master: I2CMaster | None = None, default_device_address: int = -1
-    ):
+    def __init__(self, master: I2CMaster | None = None, default_device_address: int = -1):
         self._master = master
         self._default_device_address = default_device_address
         self._i2c_commands: list[Command] = []
@@ -70,9 +66,7 @@ class I2CTransaction:
         new_root._i2c_commands.append(S())
         return I2CAddress(new_root)
 
-    def exec(
-        self, master: I2CMaster | None = None, device_address: int = -1
-    ) -> tuple[list[list[BitArray]], bool]:
+    def exec(self, master: I2CMaster | None = None, device_address: int = -1) -> tuple[list[list[BitArray]], bool]:
         if self._master is None and master is None:
             raise ValueError("I2CMaster must be provided to execute this transaction")
 

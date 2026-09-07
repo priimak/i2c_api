@@ -31,9 +31,7 @@ def test_mk_payload_list():
     with pytest.raises(ValueError):
         I2CMaster.mk_payload([700, 2])
 
-    assert I2CMaster.mk_payload([7, 10], pad_up_to_num_bytes=3) == BitArray(
-        "uint:24=1802"
-    )
+    assert I2CMaster.mk_payload([7, 10], pad_up_to_num_bytes=3) == BitArray("uint:24=1802")
 
     with pytest.raises(ValueError):
         I2CMaster.mk_payload([7, 10], pad_up_to_num_bytes=1)
@@ -46,16 +44,12 @@ def test_mk_payload_list():
 def test_mk_payload_str():
     assert I2CMaster.mk_payload("0b00000010") == BitArray("uint:8=2")
     assert I2CMaster.mk_payload("0b000000010") == BitArray("uint:16=2")
-    assert I2CMaster.mk_payload("0b000000010", pad_up_to_num_bytes=4) == BitArray(
-        "uint:32=2"
-    )
+    assert I2CMaster.mk_payload("0b000000010", pad_up_to_num_bytes=4) == BitArray("uint:32=2")
 
 
 def test_mk_payload_bits():
     assert I2CMaster.mk_payload(Bits("0x02")) == BitArray("uint:8=2")
-    assert I2CMaster.mk_payload(Bits("0x02"), pad_up_to_num_bytes=2) == BitArray(
-        "uint:16=2"
-    )
+    assert I2CMaster.mk_payload(Bits("0x02"), pad_up_to_num_bytes=2) == BitArray("uint:16=2")
 
     assert I2CMaster.mk_payload(Bits("0x002")) == BitArray("uint:16=2")
 
