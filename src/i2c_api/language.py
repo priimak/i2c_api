@@ -1,7 +1,17 @@
+from typing import Protocol
+
 from bitstring import BitArray
 
+from i2c_api.exec_results import ExecResults
 from i2c_api.commands import Address, Command, Data, P, Read, S, Sr, W
-from i2c_api.master import I2CMaster
+
+
+class I2CMaster(Protocol):
+    def exec(self, transaction: "I2CTransaction") -> ExecResults:
+        ...
+
+    def _exec(self, transaction: "I2CTransaction") -> ExecResults:
+        ...
 
 
 class I2CStopStart:
