@@ -62,7 +62,6 @@ class I2CMaster(ABC):
     def logger(self) -> I2CLogger:
         return self.__logger
 
-    @abstractmethod
     def write(
         self,
         address: int,
