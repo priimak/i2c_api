@@ -7,7 +7,13 @@ from i2c_api.commands import P
 from i2c_api.errors import I2CError
 from i2c_api.exec_results import ExecResults
 from i2c_api.language import I2CTransaction
+from i2c_api.log import I2CTransactionElement
 from i2c_api.logger import I2CLogger
+
+
+class DummyI2CLogger(I2CLogger):
+    def log_message(self, message: list[I2CTransactionElement]):
+        pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +23,9 @@ class RegisterAddress:
 
 
 class I2CMaster(ABC):
+    def __init__(self, logger: I2CLogger | None = None):
+        self.__logger: I2CLogger = DummyI2CLogger() if logger is None else logger
+
     @staticmethod
     def __pad_up_to_bytes(data: BitArray, num_bytes: int | None) -> BitArray:
         if num_bytes is None:
@@ -50,9 +59,8 @@ class I2CMaster(ABC):
         else:
             raise TypeError("Invalid payload type")
 
-    @abstractmethod
     def logger(self) -> I2CLogger:
-        pass
+        return self.__logger
 
     @abstractmethod
     def write(
@@ -71,8 +79,44 @@ class I2CMaster(ABC):
             payload into fixed number of bytes. Raises ValueError if num_bytes is not None and is less than data width.
         :return: True or False indicating if write succeeded, which is that client responded with ACK bits.
         """
+        log_msg = []
+        try:
+            return self._write(
+                address,
+                data=data,
+                num_bytes=num_bytes,
+                log_msg=log_msg,
+                end_with_stop=True,
+                start_with_restart=False,
+            )
+        finally:
+            self.logger().log_message(log_msg)
 
     @abstractmethod
+    def _write(
+        self,
+        address: int,
+        *,
+        data: Bits | str | int | list[int],
+        log_msg: list[I2CTransactionElement],
+        num_bytes: int | None,
+        end_with_stop: bool,
+        start_with_restart: bool,
+    ) -> bool:
+        pass
+
+    @abstractmethod
+    def _read(
+        self,
+        address: int,
+        *,
+        num_bytes: int,
+        log_msg: list[I2CTransactionElement],
+        end_with_stop: bool,
+        start_with_restart: bool,
+    ) -> Bits | None:
+        pass
+
     def read(self, address: int, num_bytes: int = 1) -> Bits | None:
         """
         Performs read transaction reading `num_bytes` (default is 1) from the target device identified by `address`.
@@ -82,6 +126,17 @@ class I2CMaster(ABC):
         :param num_bytes: number of bytes to read
         :return: None if failed to read data from the client (that is client did not send ACK bits) or data is Bits
         """
+        log_msg = []
+        try:
+            return self._read(
+                address,
+                num_bytes=num_bytes,
+                end_with_stop=True,
+                log_msg=log_msg,
+                start_with_restart=False,
+            )
+        finally:
+            self.logger().log_message(log_msg)
 
     def exec(self, transaction: I2CTransaction) -> ExecResults:
         """
@@ -102,7 +157,6 @@ class I2CMaster(ABC):
     def _exec(self, transaction: "I2CTransaction") -> ExecResults:
         pass
 
-    @abstractmethod
     def read_register(
         self,
         address: int,
@@ -125,8 +179,32 @@ class I2CMaster(ABC):
                 write operations
         :return: None if at any point during these transactions client sends NACK or actual Bits holding response data
         """
+        if address < 0:
+            raise I2CError("Invalid i2c device address")
 
-    @abstractmethod
+        log_msg = []
+        try:
+            write_success = self._write(
+                address,
+                data=BitArray(f"uint:{8 * register.bus_width_in_bytes}={register.address}"),
+                log_msg=log_msg,
+                num_bytes=register.bus_width_in_bytes,
+                end_with_stop=(not use_restart),
+                start_with_restart=False,
+            )
+            if write_success:
+                return self._read(
+                    address,
+                    num_bytes=num_bytes,
+                    log_msg=log_msg,
+                    end_with_stop=True,
+                    start_with_restart=use_restart,
+                )
+            else:
+                return None
+        finally:
+            self.__logger.log_message(log_msg)
+
     def write_register(
         self,
         address: int,
@@ -153,6 +231,44 @@ class I2CMaster(ABC):
                 write operations. This value is applicable only of `read_back` is `True`.
         :return: Value written into the register or None of NACK was received at any moment from the client device.
         """
+        if address < 0:
+            raise I2CError("Invalid i2c device address")
+
+        log_msg = []
+        try:
+            register_value = I2CMaster.mk_payload(data, num_bytes)
+            value_num_bytes = int(register_value.len / 8)
+            self._write(
+                address,
+                data=BitArray(f"uint:{8 * register.bus_width_in_bytes}={register.address}") + register_value,
+                log_msg=log_msg,
+                num_bytes=(value_num_bytes + register.bus_width_in_bytes),
+                end_with_stop=(not read_back or not use_restart),
+                start_with_restart=False,
+            )
+            if not read_back:
+                return register_value
+            else:  # read it back
+                write_success = self._write(
+                    address,
+                    data=BitArray(f"uint:{8 * register.bus_width_in_bytes}={register.address}"),
+                    log_msg=log_msg,
+                    num_bytes=1,
+                    end_with_stop=(not use_restart),
+                    start_with_restart=use_restart,
+                )
+                if write_success:
+                    return self._read(
+                        address,
+                        num_bytes=value_num_bytes,
+                        log_msg=log_msg,
+                        end_with_stop=True,
+                        start_with_restart=use_restart,
+                    )
+                else:
+                    return None
+        finally:
+            self.logger().log_message(log_msg)
 
     @abstractmethod
     def scan(self) -> list[int]:
