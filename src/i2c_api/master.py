@@ -226,9 +226,11 @@ class I2CMaster(ABC):
         :param read_back: if True, then register read operation will be performed at the end and its value returned.
             Otherwise, if False (default), then just do write and return back to the user the same BitArray that was
             supplied to this function as `data`.
-        :param use_restart: True or False (default) indicating if we should try using I2C restart op between read and
-                write operations. This value is applicable only of `read_back` is `True`.
-        :return: Value written into the register or None of NACK was received at any moment from the client device.
+        :param use_restart: True or False (default) indicating if we should try using I2C restart op between write and
+            read operations. This value is applicable only of `read_back` is `True`.
+        :return: Value written into the register or None if NACK was received at any moment from the client device
+            including when performing readback or any other reason that i2c driver failed. Which means that write into
+            register might be a success but readback fail and thus None be returned.
         """
         if address < 0:
             raise I2CError("Invalid i2c device address")
@@ -237,15 +239,17 @@ class I2CMaster(ABC):
         try:
             register_value = I2CMaster.mk_payload(data, num_bytes)
             value_num_bytes = int(register_value.len / 8)
-            self._write(
+            write_success = self._write(
                 address,
                 data=BitArray(f"uint:{8 * register.bus_width_in_bytes}={register.address}") + register_value,
                 log_msg=log_msg,
                 num_bytes=(value_num_bytes + register.bus_width_in_bytes),
-                end_with_stop=(not read_back or not use_restart),
+                end_with_stop=True,
                 start_with_restart=False,
             )
-            if not read_back:
+            if not write_success:
+                return None
+            elif not read_back:
                 return register_value
             else:  # read it back
                 write_success = self._write(
@@ -254,7 +258,7 @@ class I2CMaster(ABC):
                     log_msg=log_msg,
                     num_bytes=register.bus_width_in_bytes,
                     end_with_stop=(not use_restart),
-                    start_with_restart=use_restart,
+                    start_with_restart=False,
                 )
                 if write_success:
                     return self._read(
