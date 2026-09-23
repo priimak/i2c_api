@@ -252,7 +252,7 @@ class I2CMaster(ABC):
                     address,
                     data=BitArray(f"uint:{8 * register.bus_width_in_bytes}={register.address}"),
                     log_msg=log_msg,
-                    num_bytes=1,
+                    num_bytes=register.bus_width_in_bytes,
                     end_with_stop=(not use_restart),
                     start_with_restart=use_restart,
                 )
